@@ -1,0 +1,79 @@
+package xml
+
+import (
+	"encoding/xml"
+	"fmt"
+	"log"
+	"strings"
+)
+
+// Animal ...动物类型
+type Animal int
+
+// 枚举类型？
+const (
+	Unknown Animal = iota
+	Gopher
+	Zebra
+)
+
+// UnmarshalXML ... 解析XML
+func (a *Animal) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	var s string
+	if err := d.DecodeElement(&s, &start); err != nil {
+		return err
+	}
+	switch strings.ToLower(s) {
+	default:
+		*a = Unknown
+	case "gopher":
+		*a = Gopher
+	case "zebra":
+		*a = Zebra
+	}
+
+	return nil
+}
+
+// MarshalXML ... 输出XML
+func (a Animal) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
+	var s string
+	switch a {
+	default:
+		s = "unknown"
+	case Gopher:
+		s = "gopher"
+	case Zebra:
+		s = "zebra"
+	}
+	return e.EncodeElement(s, start)
+}
+
+func cmXMLRun() {
+	blob := `
+	<animals>
+		<animal>gopher</animal>
+		<animal>armadillo</animal>
+		<animal>zebra</animal>
+		<animal>unknown</animal>
+		<animal>gopher</animal>
+		<animal>bee</animal>
+		<animal>gopher</animal>
+		<animal>zebra</animal>
+	</animals>`
+	var zoo struct {
+		Animals []Animal `xml:"animal"`
+	}
+	if err := xml.Unmarshal([]byte(blob), &zoo); err != nil {
+		log.Fatal(err)
+	}
+
+	census := make(map[Animal]int)
+	for _, animal := range zoo.Animals {
+		census[animal]++
+	}
+
+	fmt.Printf("Zoo Census:\n* Gophers: %d\n* Zebras:  %d\n* Unknown: %d\n",
+		census[Gopher], census[Zebra], census[Unknown])
+
+}
